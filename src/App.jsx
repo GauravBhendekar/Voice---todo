@@ -83,10 +83,19 @@ export default function VoiceTodoApp() {
       setAiResponse(data.feedback || "Okay.");
 
       // 🔊 Audio from backend
-      if (data.audio) {
+      // if (data.audio) {
+      //   const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
+      //   audio.play();
+      // }
+
+      if (data.audio && data.audio.length > 1000) {
         const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
-        audio.play();
+        audio.volume = 1;
+        audio.play().catch(() => {
+          console.warn("Autoplay blocked");
+        });
       }
+
 
       // 🧠 Apply actions SAFELY
       if (data.action === "add" && data.taskText) {
@@ -144,9 +153,8 @@ export default function VoiceTodoApp() {
           <button
             onClick={startListening}
             disabled={isProcessing}
-            className={`w-28 h-28 rounded-full flex items-center justify-center transition ${
-              isListening ? "bg-indigo-500" : "bg-indigo-600"
-            }`}
+            className={`w-28 h-28 rounded-full flex items-center justify-center transition ${isListening ? "bg-indigo-500" : "bg-indigo-600"
+              }`}
           >
             {isListening ? <Mic /> : <MicOff />}
           </button>

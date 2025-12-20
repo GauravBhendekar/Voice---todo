@@ -15,17 +15,21 @@ const PORT = 5000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
-// ✅ CORRECT GEMINI 2.5 MODEL
+// ✅ Gemini 2.5 (correct + active)
 const GEMINI_MODEL = "gemini-2.5-flash";
+
+// 🎙 ElevenLabs Voice
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
 app.post("/api/command", async (req, res) => {
   try {
     const { command, tasks } = req.body;
 
     if (!command) {
-      return res.status(400).json({ feedback: "No command provided" });
+      return res.status(400).json({ feedback: "No command provided." });
     }
 
+    /* ================= GEMINI PROMPT ================= */
     const prompt = `
 You are a smart voice-based to-do assistant.
 
@@ -38,7 +42,7 @@ User command:
 Rules:
 - Add task only if physically and logically possible
 - If impossible, explain why
-- Return ONLY valid JSON
+- Respond ONLY with valid JSON
 
 JSON format:
 {
@@ -49,7 +53,7 @@ JSON format:
 }
 `;
 
-    // 🔹 GEMINI CALL
+    /* ================= GEMINI CALL ================= */
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -62,27 +66,36 @@ JSON format:
     );
 
     if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("❌ Gemini error:", errText);
-      return res.status(500).json({ feedback: "AI busy. Try again." });
+      const err = await geminiRes.text();
+      console.error("❌ Gemini error:", err);
+      return res.status(500).json({ feedback: "AI is busy. Try again." });
     }
 
-    const data = await geminiRes.json();
+    const geminiData = await geminiRes.json();
     const raw =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
     let result;
     try {
       result = JSON.parse(raw.replace(/```json|```/g, "").trim());
     } catch {
-      result = { action: "unknown", feedback: "I didn’t understand." };
+      result = { action: "unknown", feedback: "I didn’t understand that." };
     }
 
-    // 🔊 ElevenLabs TTS (optional)
+    /* ================= ELEVENLABS TTS ================= */
     let audio = null;
-    if (ELEVENLABS_API_KEY && result.feedback) {
-      const tts = await fetch(
-        "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+
+    // ✅ Speak ONLY if feedback exists and is short
+    if (
+      ELEVENLABS_API_KEY &&
+      typeof result.feedback === "string" &&
+      result.feedback.length > 2 &&
+      result.feedback.length < 300
+    ) {
+      console.log("🗣 ElevenLabs speaking:", result.feedback);
+
+      const ttsRes = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
         {
           method: "POST",
           headers: {
@@ -91,21 +104,29 @@ JSON format:
           },
           body: JSON.stringify({
             text: result.feedback,
-            model_id: "eleven_multilingual_v2"
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.4,
+              similarity_boost: 0.7
+            }
           })
         }
       );
 
-      if (tts.ok) {
-        const buffer = await tts.arrayBuffer();
+      if (!ttsRes.ok) {
+        const ttsErr = await ttsRes.text();
+        console.error("❌ ElevenLabs error:", ttsRes.status, ttsErr);
+      } else {
+        const buffer = await ttsRes.arrayBuffer();
         audio = Buffer.from(buffer).toString("base64");
+        console.log("🔊 Audio generated, size:", audio.length);
       }
     }
 
-    res.json({ ...result, audio });
+    return res.json({ ...result, audio });
   } catch (err) {
     console.error("🔥 SERVER CRASH:", err);
-    res.status(500).json({ feedback: "Server crashed" });
+    return res.status(500).json({ feedback: "Server crashed." });
   }
 });
 
