@@ -8,7 +8,8 @@ import {
   Zap,
   Loader2,
   Volume2,
-  AlertCircle
+  AlertCircle,
+  Sparkles // Added Sparkles to imports for the UI
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
@@ -169,7 +170,6 @@ export default function VoiceTodoApp() {
         await conversation.startSession({
           agentId: AGENT_ID,
           workletPaths: {
-            // 👇 UPDATED: Removed '.worklet' from the filename to match the real file
             rawAudioProcessor: '/elevenlabs/rawAudioProcessor.js',
             audioConcatProcessor: '/elevenlabs/audioConcatProcessor.js',
           },
@@ -182,160 +182,202 @@ export default function VoiceTodoApp() {
 
   /* ---------- UI ---------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 text-white">
-      <div className="max-w-md mx-auto flex flex-col">
+    // MAIN CONTAINER: Full screen, flexible padding for different devices
+    <div className="min-h-screen w-full bg-[#0f172a] text-white relative overflow-hidden selection:bg-indigo-500/30 font-sans">
+      
+      {/* DECORATIVE BACKGROUND BLOBS (Responsive Positioning) */}
+      <div className="absolute top-0 left-[-10%] w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-indigo-600/20 rounded-full blur-[80px] md:blur-[120px] pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-0 right-[-10%] w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-purple-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none mix-blend-screen" />
 
-        {/* Header */}
-        <header className="flex justify-between items-start mb-10">
-          <div>
-            <h1 className="text-3xl font-extrabold">VoiceTask</h1>
-            <p className="text-indigo-400 text-sm flex items-center gap-1">
-              <Zap size={14} /> ElevenLabs + Gemini
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-sm font-bold">
-              {tasks.length}
+      {/* CONTENT WRAPPER */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 md:p-8 lg:p-12">
+        
+        {/* MAIN GLASS CARD: Max width increased to 5xl for Laptop split-view */}
+        <div className="w-full max-w-lg lg:max-w-5xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl shadow-black/50 ring-1 ring-white/5 overflow-hidden flex flex-col">
+          
+          {/* HEADER (Spans full width) */}
+          <header className="flex justify-between items-center p-6 md:p-8 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/20 rounded-lg hidden md:block">
+                 <Zap size={20} className="text-indigo-400" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-300 via-white to-indigo-300 bg-clip-text text-transparent tracking-tight">
+                  VoiceTask
+                </h1>
+                <p className="text-slate-400 text-xs font-medium mt-0.5 hidden md:block">
+                  AI Powered Workspace
+                </p>
+              </div>
             </div>
-            <div className={`text-xs px-2 py-1 rounded-full font-medium ${isConnected ? 'bg-green-500/20 text-green-400' :
-                isConnecting ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-gray-500/20 text-gray-400'
-              }`}>
-              {status}
+            
+            {/* Status Pill */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full border backdrop-blur-md transition-all duration-500 ${
+              isConnected 
+                ? 'bg-green-500/10 border-green-500/20 text-green-400 shadow-[0_0_15px_-3px_rgba(74,222,128,0.2)]' 
+                : isConnecting 
+                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
+                  : 'bg-white/5 border-white/5 text-slate-400'
+            }`}>
+              <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-current'}`} />
+              <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{status}</span>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Error Display */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3"
-          >
-            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <p className="text-red-400 text-sm font-medium">Error</p>
-              <p className="text-red-300 text-xs mt-1">{error}</p>
-            </div>
-          </motion.div>
-        )}
+          {/* MAIN CONTENT GRID (Split view on LG screens) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-white/5">
+            
+            {/* LEFT COLUMN: INTERACTION (Mic & Transcript) */}
+            <div className="p-6 md:p-10 flex flex-col justify-center min-h-[400px]">
+              
+              {/* Error Banner */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6 flex items-center gap-3"
+                  >
+                    <AlertCircle className="text-red-400" size={18} />
+                    <p className="text-red-200 text-xs">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-        {/* Mic Button */}
-        <div className="flex justify-center mb-10 relative">
-          {(isConnected || isSpeaking) && (
-            <motion.div
-              className="absolute inset-0 bg-indigo-500/30 rounded-full blur-xl"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          )}
-
-          <button
-            onClick={toggleSession}
-            disabled={isProcessing || isConnecting}
-            className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${isConnected ? "bg-indigo-500 shadow-lg shadow-indigo-500/50" :
-                isConnecting ? "bg-yellow-500 animate-pulse" :
-                  "bg-indigo-600 hover:bg-indigo-500"
-              }`}
-          >
-            {isConnected ? <Mic size={40} /> : <MicOff size={40} />}
-          </button>
-        </div>
-
-        <p className="text-center text-sm text-slate-400 mb-6">
-          {isConnecting ? "Connecting..." :
-            isConnected ? (isSpeaking ? "Agent speaking..." : "Listening... Speak now") :
-              "Click mic to start"}
-        </p>
-
-        {/* Conversation Display */}
-        <div className="space-y-4 mb-8 min-h-[120px]">
-          {transcript && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-indigo-600 p-4 rounded-xl text-sm"
-            >
-              <p className="text-indigo-200 text-xs mb-1">You said:</p>
-              <p className="font-medium">"{transcript}"</p>
-            </motion.div>
-          )}
-
-          {aiResponse && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-slate-800 p-4 rounded-xl flex gap-3 items-start"
-            >
-              {isProcessing ? (
-                <Loader2 className="animate-spin flex-shrink-0 text-indigo-400" size={20} />
-              ) : (
-                <Volume2 className="flex-shrink-0 text-indigo-400" size={20} />
-              )}
-              <p className="text-sm">{aiResponse}</p>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Tasks List */}
-        <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl">
-          <h2 className="text-xs text-slate-400 mb-4 uppercase tracking-wide">
-            Your Tasks
-          </h2>
-
-          <AnimatePresence mode="popLayout">
-            {tasks.length === 0 && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-slate-500 text-sm text-center py-8"
-              >
-                No tasks yet. Tap the mic to add one.
-              </motion.p>
-            )}
-
-            {tasks.map((task, index) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                layout
-                className="flex items-center gap-3 bg-slate-700/30 hover:bg-slate-700/50 p-3 rounded-xl mb-2 transition-colors"
-              >
-                <button
-                  onClick={() =>
-                    setTasks((prev) =>
-                      prev.map((t, i) =>
-                        i === index ? { ...t, completed: !t.completed } : t
-                      )
-                    )
-                  }
-                  className="flex-shrink-0 hover:scale-110 transition-transform"
-                >
-                  {task.completed ? (
-                    <CheckCircle className="text-green-400" size={20} />
-                  ) : (
-                    <Circle className="text-slate-400" size={20} />
+              {/* Mic Section */}
+              <div className="flex flex-col items-center justify-center flex-1">
+                <div className="relative group">
+                  {/* Ripple Effects */}
+                  {(isConnected || isSpeaking) && (
+                    <>
+                      <motion.div 
+                        className="absolute inset-0 bg-indigo-500/20 rounded-full"
+                        animate={{ scale: [1, 1.6], opacity: [0.6, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                      />
+                      <motion.div 
+                        className="absolute inset-0 bg-indigo-500/20 rounded-full"
+                        animate={{ scale: [1, 1.4], opacity: [0.6, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 1 }}
+                      />
+                    </>
                   )}
-                </button>
 
-                <span className={`flex-1 text-sm ${task.completed ? "line-through text-slate-500" : "text-slate-200"
-                  }`}>
-                  {task.text}
-                </span>
+                  <button
+                    onClick={toggleSession}
+                    disabled={isProcessing || isConnecting}
+                    className={`relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isConnected 
+                        ? "bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)] ring-4 ring-indigo-500/30" 
+                        : isConnecting 
+                          ? "bg-slate-700 animate-pulse" 
+                          : "bg-gradient-to-br from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 shadow-xl ring-1 ring-white/10"
+                    }`}
+                  >
+                    {isConnected ? <Mic size={40} className="text-white" /> : <MicOff size={40} className="text-slate-400" />}
+                  </button>
+                </div>
+                
+                <p className="mt-6 text-sm md:text-base font-medium text-slate-300/80 animate-pulse tracking-wide">
+                  {isConnecting ? "Establishing Connection..." : isConnected ? (isSpeaking ? "Agent is speaking..." : "Listening...") : "Tap microphone to start"}
+                </p>
+              </div>
 
-                <button
-                  className="flex-shrink-0 opacity-50 hover:opacity-100 hover:text-red-400 transition-all"
-                  onClick={() => setTasks((prev) => prev.filter((_, i) => i !== index))}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              {/* Transcript / Chat Area */}
+              <div className="mt-8 space-y-3 min-h-[120px] flex flex-col justify-end">
+                <AnimatePresence mode="wait">
+                  {!transcript && !aiResponse && (
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="text-center text-slate-500/40 text-sm italic py-4"
+                    >
+                      Your conversation history will appear here...
+                    </motion.div>
+                  )}
+                  
+                  {transcript && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="self-end max-w-[90%]">
+                      <div className="bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm md:text-base shadow-lg">
+                        {transcript}
+                      </div>
+                      <p className="text-[10px] text-slate-400 text-right mt-1 mr-1">You</p>
+                    </motion.div>
+                  )}
+
+                  {aiResponse && (
+                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="self-start max-w-[90%]">
+                      <div className="bg-white/10 backdrop-blur-md border border-white/5 text-slate-100 px-4 py-3 rounded-2xl rounded-tl-sm text-sm md:text-base shadow-lg flex items-start gap-3">
+                        {isProcessing ? <Loader2 className="animate-spin w-4 h-4 mt-1 text-indigo-400 flex-shrink-0"/> : <Sparkles className="w-4 h-4 mt-1 text-indigo-400 flex-shrink-0"/>}
+                        <span className="leading-relaxed">{aiResponse}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 ml-1 mt-1">AI Agent</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: TASKS (Full height on Desktop) */}
+            <div className="bg-black/20 lg:bg-transparent flex flex-col h-full min-h-[300px] lg:min-h-0">
+              <div className="p-4 md:p-6 border-b border-white/5 bg-black/10 lg:bg-transparent flex justify-between items-center">
+                 <h2 className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <CheckCircle size={14} /> Your Tasks
+                 </h2>
+                 <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300 font-mono">{tasks.length}</span>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-2.5">
+                <AnimatePresence mode="popLayout">
+                  {tasks.length === 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                      className="h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                        <CheckCircle size={20} className="text-slate-600" />
+                      </div>
+                      <p>No active tasks.</p>
+                      <p className="text-xs text-slate-600">Try saying "Add a task..."</p>
+                    </motion.div>
+                  )}
+
+                  {tasks.map((task, index) => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      layout
+                      className="group flex items-start gap-3 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-indigo-500/30 rounded-xl p-3.5 transition-all duration-200"
+                    >
+                      <button
+                        onClick={() => setTasks((prev) => prev.map((t, i) => i === index ? { ...t, completed: !t.completed } : t))}
+                        className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center transition-all flex-shrink-0 ${
+                          task.completed ? "bg-green-500/20 border-green-500 text-green-400" : "border-slate-500 text-transparent hover:border-indigo-400"
+                        }`}
+                      >
+                        <CheckCircle size={12} className={task.completed ? "opacity-100" : "opacity-0"} />
+                      </button>
+
+                      <span className={`flex-1 text-sm md:text-base leading-relaxed transition-all ${task.completed ? "line-through text-slate-500" : "text-slate-200"}`}>
+                        {task.text}
+                      </span>
+
+                      <button
+                        onClick={() => setTasks((prev) => prev.filter((_, i) => i !== index))}
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 hover:text-red-400 rounded-lg transition-all text-slate-500"
+                        title="Delete task"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+            
+          </div>
         </div>
       </div>
     </div>
